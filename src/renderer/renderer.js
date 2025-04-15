@@ -327,21 +327,132 @@ function closeModal() {
 function handleFormSubmit(e) {
   e.preventDefault();
   
+  const title = document.getElementById('signal-title').value.trim();
+  const sourceContext = document.getElementById('signal-source').value.trim();
+  const whyItMatters = document.getElementById('signal-why').value.trim();
+  
+  let isValid = true;
+  let errorMessage = '';
+  
+  if (!title) {
+    isValid = false;
+    errorMessage = 'Title is required';
+    document.getElementById('signal-title').classList.add('error');
+  } else {
+    document.getElementById('signal-title').classList.remove('error');
+  }
+  
+  if (!sourceContext) {
+    isValid = false;
+    errorMessage = errorMessage ? errorMessage + '\nSource/Context is required' : 'Source/Context is required';
+    document.getElementById('signal-source').classList.add('error');
+  } else {
+    document.getElementById('signal-source').classList.remove('error');
+  }
+  
+  if (!whyItMatters) {
+    isValid = false;
+    errorMessage = errorMessage ? errorMessage + '\nWhy It Matters is required' : 'Why It Matters is required';
+    document.getElementById('signal-why').classList.add('error');
+  } else {
+    document.getElementById('signal-why').classList.remove('error');
+  }
+  
+  if (selectedTags.length === 0) {
+    isValid = false;
+    errorMessage = errorMessage ? errorMessage + '\nAt least one tag is required' : 'At least one tag is required';
+    document.getElementById('selected-tags').classList.add('error');
+  } else {
+    document.getElementById('selected-tags').classList.remove('error');
+  }
+  
+  if (!isValid) {
+    showFormError(errorMessage);
+    return;
+  }
+  
+  clearFormError();
+  
   const signalData = {
-    title: document.getElementById('signal-title').value,
-    sourceContext: document.getElementById('signal-source').value,
-    whyItMatters: document.getElementById('signal-why').value,
+    title,
+    sourceContext,
+    whyItMatters,
     categoryTags: selectedTags,
-    dateCreated: currentSignal ? currentSignal.dateCreated : new Date().toISOString()
+    dateCreated: currentSignal ? currentSignal.dateCreated : new Date().toISOString(),
+    followUpNeeded: currentSignal ? currentSignal.followUpNeeded : false
   };
   
   const signalId = document.getElementById('signal-id').value;
   
+  const saveBtn = document.getElementById('save-btn');
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = 'Saving...';
+  saveBtn.disabled = true;
+  
   if (signalId) {
-    updateSignal(signalId, signalData);
+    updateSignal(signalId, signalData)
+      .then(() => {
+        showToast(currentSignal ? 'Signal updated successfully' : 'Signal created successfully');
+      })
+      .catch(error => {
+        showFormError('Error saving signal: ' + error.message);
+      })
+      .finally(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+      });
   } else {
-    createSignal(signalData);
+    createSignal(signalData)
+      .then(() => {
+        showToast('Signal created successfully');
+      })
+      .catch(error => {
+        showFormError('Error saving signal: ' + error.message);
+      })
+      .finally(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+      });
   }
+}
+
+function showFormError(message) {
+  let errorElement = document.getElementById('form-error');
+  
+  if (!errorElement) {
+    errorElement = document.createElement('div');
+    errorElement.id = 'form-error';
+    errorElement.className = 'form-error';
+    document.getElementById('signal-form').prepend(errorElement);
+  }
+  
+  errorElement.textContent = message;
+  errorElement.style.display = 'block';
+}
+
+function clearFormError() {
+  const errorElement = document.getElementById('form-error');
+  if (errorElement) {
+    errorElement.style.display = 'none';
+  }
+}
+
+function showToast(message) {
+  let toast = document.getElementById('toast');
+  
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  
+  toast.textContent = message;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
 }
 
 function toggleTag(tag) {
