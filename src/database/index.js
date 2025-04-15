@@ -28,6 +28,7 @@ function initializeDatabase() {
       whyItMatters TEXT NOT NULL,
       dateCreated TEXT NOT NULL,
       followUpNeeded INTEGER DEFAULT 0,
+      notes TEXT,
       categoryTags TEXT
     )
   `, (err) => {
@@ -42,13 +43,13 @@ function initializeDatabase() {
 const database = {
   createSignal(signal) {
     return new Promise((resolve, reject) => {
-      const { title, sourceContext, whyItMatters, categoryTags, dateCreated, followUpNeeded = 0 } = signal;
+      const { title, sourceContext, whyItMatters, categoryTags, dateCreated, followUpNeeded = 0, notes = '' } = signal;
       const tagsString = JSON.stringify(categoryTags || []);
       
       db.run(
-        `INSERT INTO signals (title, sourceContext, whyItMatters, dateCreated, followUpNeeded, categoryTags) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [title, sourceContext, whyItMatters, dateCreated, followUpNeeded, tagsString],
+        `INSERT INTO signals (title, sourceContext, whyItMatters, dateCreated, followUpNeeded, notes, categoryTags) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [title, sourceContext, whyItMatters, dateCreated, followUpNeeded, notes, tagsString],
         function(err) {
           if (err) {
             reject(err);
@@ -94,14 +95,14 @@ const database = {
 
   updateSignal(id, signal) {
     return new Promise((resolve, reject) => {
-      const { title, sourceContext, whyItMatters, categoryTags, followUpNeeded } = signal;
+      const { title, sourceContext, whyItMatters, categoryTags, followUpNeeded, notes } = signal;
       const tagsString = JSON.stringify(categoryTags || []);
       
       db.run(
         `UPDATE signals 
-         SET title = ?, sourceContext = ?, whyItMatters = ?, categoryTags = ?, followUpNeeded = ? 
+         SET title = ?, sourceContext = ?, whyItMatters = ?, categoryTags = ?, followUpNeeded = ?, notes = ? 
          WHERE id = ?`,
-        [title, sourceContext, whyItMatters, tagsString, followUpNeeded || 0, id],
+        [title, sourceContext, whyItMatters, tagsString, followUpNeeded || 0, notes || '', id],
         function(err) {
           if (err) {
             reject(err);
@@ -220,6 +221,7 @@ function formatSignal(row) {
     whyItMatters: row.whyItMatters,
     dateCreated: row.dateCreated,
     followUpNeeded: Boolean(row.followUpNeeded),
+    notes: row.notes || '',
     categoryTags
   };
 }

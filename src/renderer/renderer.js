@@ -215,7 +215,20 @@ function viewSignalDetail(signal) {
             ${signal.categoryTags.map(tag => `<span class="tag">${tag}</span>`).join('')}
           </div>
         </div>
+        <div class="detail-section">
+          <div class="follow-up-container">
+            <label class="follow-up-label">
+              <input type="checkbox" id="follow-up-checkbox" ${signal.followUpNeeded ? 'checked' : ''}>
+              Mark for follow-up
+            </label>
+          </div>
+          <div class="notes-container">
+            <h4>Notes</h4>
+            <textarea id="signal-notes" placeholder="Add notes for future reference...">${signal.notes || ''}</textarea>
+          </div>
+        </div>
         <div class="detail-actions">
+          <button class="save-detail-btn primary-btn">Save Changes</button>
           <button class="edit-detail-btn secondary-btn">Edit</button>
           <button class="close-detail-btn secondary-btn">Close</button>
         </div>
@@ -236,6 +249,21 @@ function viewSignalDetail(signal) {
   detailModal.querySelector('.edit-detail-btn').addEventListener('click', () => {
     document.body.removeChild(detailModal);
     openModal(signal);
+  });
+  
+  detailModal.querySelector('.save-detail-btn').addEventListener('click', () => {
+    const followUpNeeded = detailModal.querySelector('#follow-up-checkbox').checked;
+    const notes = detailModal.querySelector('#signal-notes').value.trim();
+    
+    updateSignalReviewData(signal.id, { followUpNeeded, notes })
+      .then(() => {
+        showToast('Signal review data saved successfully');
+        document.body.removeChild(detailModal);
+      })
+      .catch(error => {
+        console.error('Error saving review data:', error);
+        showToast('Error saving review data');
+      });
   });
 }
 
@@ -393,7 +421,8 @@ function handleFormSubmit(e) {
     whyItMatters,
     categoryTags: selectedTags,
     dateCreated: currentSignal ? currentSignal.dateCreated : new Date().toISOString(),
-    followUpNeeded: currentSignal ? currentSignal.followUpNeeded : false
+    followUpNeeded: currentSignal ? currentSignal.followUpNeeded : false,
+    notes: currentSignal ? currentSignal.notes : ''
   };
   
   const signalId = document.getElementById('signal-id').value;
@@ -485,6 +514,27 @@ function addCustomTag() {
     customTagInput.value = '';
     
     document.getElementById('selected-tags').classList.remove('error');
+  }
+}
+
+async function updateSignalReviewData(id, reviewData) {
+  try {
+    const signal = signals.find(s => s.id === id);
+    if (!signal) throw new Error('Signal not found');
+    
+    const updatedSignal = {
+      ...signal,
+      followUpNeeded: reviewData.followUpNeeded,
+      notes: reviewData.notes
+    };
+    
+    const result = await window.api.updateSignal(id, updatedSignal);
+    signals = signals.map(s => s.id === id ? result : s);
+    renderSignals();
+    return result;
+  } catch (error) {
+    console.error('Error updating signal review data:', error);
+    throw error;
   }
 }
 
