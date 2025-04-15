@@ -158,6 +158,15 @@ body {
   gap: 1rem;
 }
 
+.signals-summary {
+  background-color: #f8f9fa;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+}
+
 .signal-card {
   background-color: white;
   border: 1px solid var(--border-color);
@@ -208,6 +217,40 @@ body {
   text-align: center;
   padding: 2rem;
   color: var(--secondary-color);
+}
+
+/* Signal Detail View */
+.detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.detail-section h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.detail-section h4 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--secondary-color);
+}
+
+.detail-date {
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+}
+
+.detail-section p {
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
 }
 
 /* Modal */

@@ -120,26 +120,44 @@ function renderSignals() {
     return;
   }
 
+  const summaryElement = document.createElement('div');
+  summaryElement.className = 'signals-summary';
+  summaryElement.innerHTML = `
+    <p>Showing ${filteredSignals.length} of ${signals.length} signals</p>
+  `;
+  signalsList.appendChild(summaryElement);
+
   filteredSignals.forEach(signal => {
     const signalCard = document.createElement('div');
     signalCard.className = 'signal-card';
+    
+    const truncateText = (text, maxLength = 150) => {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength) + '...';
+    };
+    
     signalCard.innerHTML = `
       <div class="signal-card-header">
         <h3 class="signal-card-title">${signal.title}</h3>
         <span class="signal-card-date">${formatDate(signal.dateCreated)}</span>
       </div>
       <div class="signal-card-content">
-        <p><strong>Source/Context:</strong> ${signal.sourceContext}</p>
-        <p><strong>Why It Matters:</strong> ${signal.whyItMatters}</p>
+        <p><strong>Source/Context:</strong> ${truncateText(signal.sourceContext)}</p>
+        <p><strong>Why It Matters:</strong> ${truncateText(signal.whyItMatters)}</p>
       </div>
       <div class="signal-card-tags">
         ${signal.categoryTags.map(tag => `<span class="tag">${tag}</span>`).join('')}
       </div>
       <div class="signal-card-actions">
+        <button class="view-btn secondary-btn" data-id="${signal.id}">View</button>
         <button class="edit-btn secondary-btn" data-id="${signal.id}">Edit</button>
         <button class="delete-btn secondary-btn" data-id="${signal.id}">Delete</button>
       </div>
     `;
+
+    signalCard.querySelector('.view-btn').addEventListener('click', () => {
+      viewSignalDetail(signal);
+    });
 
     signalCard.querySelector('.edit-btn').addEventListener('click', () => {
       openModal(signal);
@@ -150,6 +168,60 @@ function renderSignals() {
     });
 
     signalsList.appendChild(signalCard);
+  });
+}
+
+function viewSignalDetail(signal) {
+  const detailModal = document.createElement('div');
+  detailModal.className = 'modal';
+  detailModal.style.display = 'block';
+  
+  detailModal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Signal Details</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <h3>${signal.title}</h3>
+          <p class="detail-date">Captured on ${formatDate(signal.dateCreated)}</p>
+        </div>
+        <div class="detail-section">
+          <h4>Source/Context</h4>
+          <p>${signal.sourceContext}</p>
+        </div>
+        <div class="detail-section">
+          <h4>Why It Matters</h4>
+          <p>${signal.whyItMatters}</p>
+        </div>
+        <div class="detail-section">
+          <h4>Categories/Tags</h4>
+          <div class="tag-list">
+            ${signal.categoryTags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="edit-detail-btn secondary-btn">Edit</button>
+          <button class="close-detail-btn secondary-btn">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(detailModal);
+  
+  detailModal.querySelector('.close-btn').addEventListener('click', () => {
+    document.body.removeChild(detailModal);
+  });
+  
+  detailModal.querySelector('.close-detail-btn').addEventListener('click', () => {
+    document.body.removeChild(detailModal);
+  });
+  
+  detailModal.querySelector('.edit-detail-btn').addEventListener('click', () => {
+    document.body.removeChild(detailModal);
+    openModal(signal);
   });
 }
 
