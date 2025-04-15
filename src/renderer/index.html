@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weak Signal Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>Weak Signal Tracker</h1>
+      <div class="header-actions">
+        <button id="add-signal-btn" class="primary-btn">Add Signal</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="search-container">
+          <input type="text" id="search-input" placeholder="Search signals...">
+        </div>
+        <div class="filter-container">
+          <h3>Filter by Tags</h3>
+          <div id="tag-filters" class="tag-list">
+            <!-- Tags will be dynamically inserted here -->
+          </div>
+        </div>
+      </aside>
+
+      <main class="signals-container">
+        <div class="signals-header">
+          <h2>Signals</h2>
+          <div class="view-options">
+            <select id="sort-select">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+        </div>
+        <div id="signals-list" class="signals-list">
+          <!-- Signals will be dynamically inserted here -->
+          <div class="empty-state">
+            <p>No signals yet. Click "Add Signal" to get started.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Signal Form Modal -->
+    <div id="signal-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Add New Signal</h2>
+          <button id="close-modal" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="signal-form">
+            <input type="hidden" id="signal-id">
+            <div class="form-group">
+              <label for="signal-title">Title</label>
+              <input type="text" id="signal-title" required>
+            </div>
+            <div class="form-group">
+              <label for="signal-source">Source/Context</label>
+              <textarea id="signal-source" required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="signal-why">Why It Matters</label>
+              <textarea id="signal-why" required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="signal-tags">Categories/Tags</label>
+              <div class="tag-selector">
+                <div id="predefined-tags" class="tag-options">
+                  <!-- Predefined tags will be inserted here -->
+                </div>
+                <div id="selected-tags" class="selected-tags">
+                  <!-- Selected tags will be inserted here -->
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="cancel-btn" class="secondary-btn">Cancel</button>
+              <button type="submit" id="save-btn" class="primary-btn">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
