@@ -46,6 +46,20 @@ function setupEventListeners() {
   searchInput.addEventListener('input', handleSearch);
 
   sortSelect.addEventListener('change', handleSort);
+  
+  const customTagInput = document.getElementById('custom-tag-input');
+  const addCustomTagBtn = document.getElementById('add-custom-tag-btn');
+  
+  addCustomTagBtn.addEventListener('click', () => {
+    addCustomTag();
+  });
+  
+  customTagInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
+      addCustomTag();
+    }
+  });
 }
 
 async function loadSignals() {
@@ -453,6 +467,25 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove('show');
   }, 3000);
+}
+
+function addCustomTag() {
+  const customTagInput = document.getElementById('custom-tag-input');
+  const customTag = customTagInput.value.trim();
+  
+  if (customTag && !selectedTags.includes(customTag)) {
+    selectedTags.push(customTag);
+    renderSelectedTags();
+    
+    if (!predefinedTags.includes(customTag)) {
+      predefinedTags.push(customTag);
+      renderPredefinedTags();
+    }
+    
+    customTagInput.value = '';
+    
+    document.getElementById('selected-tags').classList.remove('error');
+  }
 }
 
 function toggleTag(tag) {

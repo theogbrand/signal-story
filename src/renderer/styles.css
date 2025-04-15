@@ -331,6 +331,25 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.custom-tag-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.custom-tag-input input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.custom-tag-input button {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
 .selected-tags {
   display: flex;
   flex-wrap: wrap;
