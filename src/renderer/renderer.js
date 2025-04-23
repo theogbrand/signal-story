@@ -725,13 +725,18 @@ async function fetchPipelineDataNow() {
     fetchNowBtn.textContent = 'Fetching...';
     fetchNowBtn.disabled = true;
     
-    await window.api.fetchPipelineDataNow();
+    const result = await window.api.fetchPipelineDataNow();
     
-    showToast('Data fetched successfully');
+    if (result.success) {
+      showToast(result.message || 'Data fetched successfully');
+    } else {
+      showToast(result.message || 'No data fetched. Check configuration.');
+    }
+    
     await loadPipelineItems();
   } catch (error) {
     console.error('Error fetching pipeline data:', error);
-    showToast('Error fetching data');
+    showToast('Error fetching data: ' + (error.message || 'Unknown error'));
   } finally {
     fetchNowBtn.textContent = 'Fetch Data Now';
     fetchNowBtn.disabled = false;

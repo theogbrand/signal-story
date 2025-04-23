@@ -185,11 +185,21 @@ ipcMain.handle('save-pipeline-config', async (event, config) => {
 
 ipcMain.handle('fetch-pipeline-data-now', async () => {
   try {
-    await fetchFromAllSources();
-    return { success: true };
+    console.log('Manual data fetch requested from UI');
+    const result = await fetchFromAllSources();
+    console.log('Manual data fetch completed');
+    return { 
+      success: true,
+      message: result && result.totalFetched > 0 
+        ? `Fetched ${result.totalFetched} items from configured sources` 
+        : 'No items fetched. Check logs for details'
+    };
   } catch (error) {
     console.error('Error fetching pipeline data:', error);
-    throw error;
+    return {
+      success: false,
+      message: `Error fetching data: ${error.message}`
+    };
   }
 });
 
@@ -232,8 +242,16 @@ ipcMain.handle('delete-pipeline-item', async (event, itemId) => {
 
 async function fetchHackerNewsTopStories(limit = 20) {
   try {
+    console.log('Fetching top stories from HackerNews API...');
     const response = await axios.get('https://hacker-news.firebaseio.com/v0/topstories.json');
+    
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error('Unexpected HackerNews API response format for top stories:', response.data);
+      return [];
+    }
+    
     const storyIds = response.data.slice(0, limit);
+    console.log(`Retrieved ${storyIds.length} story IDs from HackerNews`);
     
     const storyPromises = storyIds.map(id => 
       axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
@@ -242,6 +260,8 @@ async function fetchHackerNewsTopStories(limit = 20) {
     const storyResponses = await Promise.all(storyPromises);
     const stories = storyResponses.map(res => res.data);
     
+    console.log(`Successfully fetched details for ${stories.length} HackerNews stories`);
+    
     return stories.map(story => ({
       rawTitle: story.title,
       rawSource: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
@@ -249,26 +269,45 @@ async function fetchHackerNewsTopStories(limit = 20) {
       source: 'hackernews'
     }));
   } catch (error) {
-    console.error('Error fetching from HackerNews API:', error);
+    console.error('Error fetching from HackerNews API:', error.message);
+    if (error.response) {
+      console.error(`Status: ${error.response.status}, Data:`, error.response.data);
+    }
     return [];
   }
 }
 
 async function fetchGitHubTrending(limit = 20) {
   try {
+    console.log('Fetching trending repositories from GitHub API...');
     const date = new Date();
     date.setDate(date.getDate() - 7); // Get repos from the last week
     const dateString = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
+    const headers = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'WeakSignalTracker'
+    };
+    
+    const githubToken = process.env.GITHUB_TOKEN;
+    if (githubToken) {
+      console.log('Using GitHub token for authentication');
+      headers['Authorization'] = `token ${githubToken}`;
+    } else {
+      console.log('No GitHub token found, using unauthenticated request (rate limited to 60 requests/hour)');
+    }
+    
     const response = await axios.get(
       `https://api.github.com/search/repositories?q=created:>${dateString}&sort=stars&order=desc&per_page=${limit}`,
-      {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'WeakSignalTracker'
-        }
-      }
+      { headers }
     );
+    
+    if (!response.data.items || !Array.isArray(response.data.items)) {
+      console.error('Unexpected GitHub API response format:', response.data);
+      return [];
+    }
+    
+    console.log(`Successfully fetched ${response.data.items.length} trending repositories from GitHub`);
     
     return response.data.items.map(repo => ({
       rawTitle: repo.full_name,
@@ -277,36 +316,114 @@ async function fetchGitHubTrending(limit = 20) {
       source: 'github'
     }));
   } catch (error) {
-    console.error('Error fetching from GitHub API:', error);
+    console.error('Error fetching from GitHub API:', error.message);
+    if (error.response) {
+      console.error(`Status: ${error.response.status}, Data:`, error.response.data);
+      
+      if (error.response.status === 403 && error.response.headers['x-ratelimit-remaining'] === '0') {
+        console.error('GitHub API rate limit exceeded. Consider adding a GitHub token for authentication.');
+      }
+    }
     return [];
   }
 }
 
 async function fetchAppleDeveloperNews(limit = 20) {
-  return [];
+  try {
+    console.log('Fetching Apple Developer News...');
+    
+    
+    const mockAppleNews = [
+      {
+        title: "What's new in SwiftUI",
+        url: "https://developer.apple.com/swiftui/",
+        description: "A mock entry for Apple Developer News"
+      },
+      {
+        title: "Introducing iOS 17",
+        url: "https://developer.apple.com/ios/",
+        description: "A mock entry for Apple Developer News"
+      },
+      {
+        title: "ARKit Updates",
+        url: "https://developer.apple.com/augmented-reality/",
+        description: "A mock entry for Apple Developer News"
+      }
+    ];
+    
+    const results = mockAppleNews.slice(0, limit).map(item => ({
+      rawTitle: item.title,
+      rawSource: item.url,
+      rawDescription: item.description,
+      source: 'apple'
+    }));
+    
+    console.log(`Successfully mocked ${results.length} Apple Developer News items`);
+    return results;
+  } catch (error) {
+    console.error('Error fetching Apple Developer News:', error.message);
+    return [];
+  }
 }
 
 async function fetchFromAllSources() {
+  const pipelineEnabled = store.get('pipelineEnabled');
+  if (!pipelineEnabled) {
+    console.log('Data pipeline is disabled. Enable it in settings to fetch data.');
+    return;
+  }
+  
   const sourcesConfig = store.get('sources');
-  if (!sourcesConfig) return;
+  if (!sourcesConfig) {
+    console.log('No sources configuration found');
+    return;
+  }
   
   console.log('Fetching data from configured sources...');
+  console.log('Current configuration:', JSON.stringify(sourcesConfig, null, 2));
   
   const fetchPromises = [];
+  let enabledSourcesCount = 0;
   
   if (sourcesConfig.hackernews && sourcesConfig.hackernews.enabled) {
     const limit = sourcesConfig.hackernews.limit || 20;
-    fetchPromises.push(fetchHackerNewsTopStories(limit));
+    console.log(`HackerNews source enabled with limit: ${limit}`);
+    enabledSourcesCount++;
+    fetchPromises.push(fetchHackerNewsTopStories(limit).then(items => {
+      console.log(`Fetched ${items.length} items from HackerNews`);
+      return items;
+    }));
+  } else {
+    console.log('HackerNews source is disabled or not configured');
   }
   
   if (sourcesConfig.github && sourcesConfig.github.enabled) {
     const limit = sourcesConfig.github.limit || 20;
-    fetchPromises.push(fetchGitHubTrending(limit));
+    console.log(`GitHub source enabled with limit: ${limit}`);
+    enabledSourcesCount++;
+    fetchPromises.push(fetchGitHubTrending(limit).then(items => {
+      console.log(`Fetched ${items.length} items from GitHub`);
+      return items;
+    }));
+  } else {
+    console.log('GitHub source is disabled or not configured');
   }
   
   if (sourcesConfig.apple && sourcesConfig.apple.enabled) {
     const limit = sourcesConfig.apple.limit || 20;
-    fetchPromises.push(fetchAppleDeveloperNews(limit));
+    console.log(`Apple source enabled with limit: ${limit}`);
+    enabledSourcesCount++;
+    fetchPromises.push(fetchAppleDeveloperNews(limit).then(items => {
+      console.log(`Fetched ${items.length} items from Apple`);
+      return items;
+    }));
+  } else {
+    console.log('Apple source is disabled or not configured');
+  }
+  
+  if (enabledSourcesCount === 0) {
+    console.log('No sources are enabled. Please enable at least one source in the pipeline settings.');
+    return;
   }
   
   const results = await Promise.all(fetchPromises);
@@ -314,9 +431,11 @@ async function fetchFromAllSources() {
   
   console.log(`Fetched ${allItems.length} items from all sources`);
   
+  let savedCount = 0;
   for (const item of allItems) {
     try {
       await database.createPipelineItem(item);
+      savedCount++;
     } catch (error) {
       console.error('Error storing pipeline item:', error);
     }
@@ -325,6 +444,16 @@ async function fetchFromAllSources() {
   if (mainWindow && mainWindow.webContents) {
     mainWindow.webContents.send('pipeline-items-updated');
   }
+  
+  return {
+    totalFetched: allItems.length,
+    totalSaved: savedCount,
+    sources: {
+      hackernews: results[0]?.length || 0,
+      github: results[1]?.length || 0,
+      apple: results[2]?.length || 0
+    }
+  };
 }
 
 app.on('will-quit', async () => {
