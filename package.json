@@ -1,0 +1,36 @@
+{
+  "name": "weak-signal-tracker",
+  "version": "1.0.0",
+  "description": "Desktop application to track weak signals for emerging trends and opportunities",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "nodemon --exec electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "signals",
+    "trends",
+    "tracker"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "nodemon": "^3.1.9"
+  },
+  "build": {
+    "appId": "com.weakSignalTracker.app",
+    "productName": "Weak Signal Tracker",
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "dependencies": {
+    "electron-store": "^10.0.1",
+    "sqlite3": "^5.1.7"
+  }
+}
