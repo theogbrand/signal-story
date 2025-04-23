@@ -10,10 +10,46 @@ const sortSelect = document.getElementById('sort-select');
 const predefinedTagsContainer = document.getElementById('predefined-tags');
 const selectedTagsContainer = document.getElementById('selected-tags');
 
+const pipelineSettingsBtn = document.getElementById('pipeline-settings-btn');
+const pipelineSettingsModal = document.getElementById('pipeline-settings-modal');
+const closePipelineSettingsModal = document.getElementById('close-pipeline-settings-modal');
+const cancelPipelineSettingsBtn = document.getElementById('cancel-pipeline-settings-btn');
+const savePipelineSettingsBtn = document.getElementById('save-pipeline-settings-btn');
+const fetchNowBtn = document.getElementById('fetch-now-btn');
+
+const pipelineEnabledToggle = document.getElementById('pipeline-enabled-toggle');
+const hackernewsEnabledToggle = document.getElementById('hackernews-enabled-toggle');
+const githubEnabledToggle = document.getElementById('github-enabled-toggle');
+const appleEnabledToggle = document.getElementById('apple-enabled-toggle');
+const hackernewsLimit = document.getElementById('hackernews-limit');
+const githubLimit = document.getElementById('github-limit');
+const appleLimit = document.getElementById('apple-limit');
+const dailyFetchToggle = document.getElementById('daily-fetch-toggle');
+const weeklyFetchToggle = document.getElementById('weekly-fetch-toggle');
+
+const pipelineItemsModal = document.getElementById('pipeline-items-modal');
+const closePipelineItemsModal = document.getElementById('close-pipeline-items-modal');
+const pipelineItemsList = document.getElementById('pipeline-items-list');
+
 let signals = [];
 let currentSignal = null;
 let selectedTags = [];
 let activeFilter = null;
+
+let pipelineConfig = {
+  pipelineEnabled: false,
+  sources: {
+    hackernews: { enabled: false, limit: 20 },
+    github: { enabled: false, limit: 20 },
+    apple: { enabled: false, limit: 20 }
+  },
+  fetchIntervals: {
+    daily: false,
+    weekly: false
+  }
+};
+
+let pipelineItems = [];
 
 const predefinedTags = [
   'policy', 
@@ -31,6 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSignals();
   renderTagFilters();
   setupEventListeners();
+  
+  await initializePipeline();
 });
 
 function setupEventListeners() {
@@ -60,6 +98,8 @@ function setupEventListeners() {
       addCustomTag();
     }
   });
+  
+  setupPipelineEventListeners();
 }
 
 async function loadSignals() {
@@ -576,4 +616,335 @@ function formatDate(dateString) {
     month: 'short', 
     day: 'numeric' 
   });
+}
+
+
+function setupPipelineEventListeners() {
+  pipelineSettingsBtn.addEventListener('click', openPipelineSettingsModal);
+  closePipelineSettingsModal.addEventListener('click', closePipelineSettings);
+  cancelPipelineSettingsBtn.addEventListener('click', closePipelineSettings);
+  savePipelineSettingsBtn.addEventListener('click', savePipelineSettings);
+  fetchNowBtn.addEventListener('click', fetchPipelineDataNow);
+  
+  closePipelineItemsModal.addEventListener('click', () => {
+    pipelineItemsModal.style.display = 'none';
+  });
+  
+  document.addEventListener('pipeline-items-updated', loadPipelineItems);
+  
+  document.querySelectorAll('.pipeline-items-tabs .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pipeline-items-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const source = btn.getAttribute('data-source');
+      filterPipelineItemsBySource(source);
+    });
+  });
+}
+
+async function loadPipelineConfig() {
+  try {
+    pipelineConfig = await window.api.getPipelineConfig();
+    updatePipelineSettingsUI();
+  } catch (error) {
+    console.error('Error loading pipeline configuration:', error);
+  }
+}
+
+function updatePipelineSettingsUI() {
+  pipelineEnabledToggle.checked = pipelineConfig.pipelineEnabled;
+  
+  const sources = pipelineConfig.sources;
+  if (sources.hackernews) {
+    hackernewsEnabledToggle.checked = sources.hackernews.enabled;
+    hackernewsLimit.value = sources.hackernews.limit || 20;
+  }
+  
+  if (sources.github) {
+    githubEnabledToggle.checked = sources.github.enabled;
+    githubLimit.value = sources.github.limit || 20;
+  }
+  
+  if (sources.apple) {
+    appleEnabledToggle.checked = sources.apple.enabled;
+    appleLimit.value = sources.apple.limit || 20;
+  }
+  
+  const intervals = pipelineConfig.fetchIntervals;
+  dailyFetchToggle.checked = intervals.daily;
+  weeklyFetchToggle.checked = intervals.weekly;
+}
+
+function openPipelineSettingsModal() {
+  loadPipelineConfig();
+  pipelineSettingsModal.style.display = 'block';
+}
+
+function closePipelineSettings() {
+  pipelineSettingsModal.style.display = 'none';
+}
+
+async function savePipelineSettings() {
+  try {
+    const updatedConfig = {
+      pipelineEnabled: pipelineEnabledToggle.checked,
+      sources: {
+        hackernews: {
+          enabled: hackernewsEnabledToggle.checked,
+          limit: parseInt(hackernewsLimit.value, 10) || 20
+        },
+        github: {
+          enabled: githubEnabledToggle.checked,
+          limit: parseInt(githubLimit.value, 10) || 20
+        },
+        apple: {
+          enabled: appleEnabledToggle.checked,
+          limit: parseInt(appleLimit.value, 10) || 20
+        }
+      },
+      fetchIntervals: {
+        daily: dailyFetchToggle.checked,
+        weekly: weeklyFetchToggle.checked
+      }
+    };
+    
+    await window.api.savePipelineConfig(updatedConfig);
+    pipelineConfig = updatedConfig;
+    
+    showToast('Pipeline settings saved successfully');
+    closePipelineSettings();
+  } catch (error) {
+    console.error('Error saving pipeline settings:', error);
+    showFormError('Error saving pipeline settings: ' + error.message);
+  }
+}
+
+async function fetchPipelineDataNow() {
+  try {
+    fetchNowBtn.textContent = 'Fetching...';
+    fetchNowBtn.disabled = true;
+    
+    await window.api.fetchPipelineDataNow();
+    
+    showToast('Data fetched successfully');
+    await loadPipelineItems();
+  } catch (error) {
+    console.error('Error fetching pipeline data:', error);
+    showToast('Error fetching data');
+  } finally {
+    fetchNowBtn.textContent = 'Fetch Data Now';
+    fetchNowBtn.disabled = false;
+  }
+}
+
+async function loadPipelineItems() {
+  try {
+    pipelineItems = await window.api.getPipelineItems();
+    
+    const pipelineBadge = document.querySelector('.pipeline-badge');
+    if (pipelineBadge) {
+      if (pipelineItems.length > 0) {
+        pipelineBadge.textContent = `${pipelineItems.length} items`;
+      } else {
+        pipelineBadge.remove();
+      }
+    } else if (pipelineItems.length > 0) {
+      const headerActions = document.querySelector('.header-actions');
+      const newBadge = document.createElement('div');
+      newBadge.className = 'pipeline-badge';
+      newBadge.textContent = `${pipelineItems.length} items`;
+      newBadge.addEventListener('click', openPipelineItemsModal);
+      headerActions.appendChild(newBadge);
+    }
+  } catch (error) {
+    console.error('Error loading pipeline items:', error);
+  }
+}
+
+function openPipelineItemsModal() {
+  renderPipelineItems();
+  pipelineItemsModal.style.display = 'block';
+}
+
+function filterPipelineItemsBySource(source) {
+  const items = document.querySelectorAll('.pipeline-item');
+  
+  if (source === 'all') {
+    items.forEach(item => item.style.display = 'block');
+    return;
+  }
+  
+  items.forEach(item => {
+    const itemSource = item.querySelector('.pipeline-item-source').textContent.toLowerCase();
+    if (itemSource === source.toLowerCase()) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+function renderPipelineItems() {
+  pipelineItemsList.innerHTML = '';
+  
+  if (pipelineItems.length === 0) {
+    pipelineItemsList.innerHTML = `
+      <div class="empty-state">
+        <p>No pipeline items available. Configure data sources and fetch data to see items here.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  pipelineItems.forEach(item => {
+    const itemElement = document.createElement('div');
+    itemElement.className = 'pipeline-item';
+    
+    itemElement.innerHTML = `
+      <div class="pipeline-item-header">
+        <h3 class="pipeline-item-title">${item.rawTitle}</h3>
+        <span class="pipeline-item-source">${item.source}</span>
+      </div>
+      <div class="pipeline-item-content">
+        <p><strong>Source/Context:</strong> <a href="${item.rawSource}" target="_blank">${item.rawSource}</a></p>
+        <p><strong>Description:</strong> ${item.rawDescription || 'No description'}</p>
+        <p><strong>Fetched:</strong> ${formatDate(item.fetchDate)}</p>
+      </div>
+      <div class="pipeline-item-form">
+        <div class="form-group">
+          <label for="item-why-${item.itemId}">Why It Matters:</label>
+          <textarea id="item-why-${item.itemId}" placeholder="Explain why this signal matters..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="item-tags-${item.itemId}">Tags:</label>
+          <div class="tag-selector">
+            <div class="tag-options item-tags-options-${item.itemId}">
+              ${predefinedTags.map(tag => `<span class="tag" data-item-id="${item.itemId}" data-tag="${tag}">${tag}</span>`).join('')}
+            </div>
+            <div class="selected-tags item-selected-tags-${item.itemId}"></div>
+          </div>
+        </div>
+        <div class="pipeline-item-actions">
+          <button class="approve-btn primary-btn" data-item-id="${item.itemId}">Approve</button>
+          <button class="discard-btn secondary-btn" data-item-id="${item.itemId}">Discard</button>
+        </div>
+      </div>
+    `;
+    
+    pipelineItemsList.appendChild(itemElement);
+    
+    const tagOptions = itemElement.querySelectorAll(`.tag-options[class*="item-tags-options-${item.itemId}"] .tag`);
+    const selectedTagsContainer = itemElement.querySelector(`.selected-tags[class*="item-selected-tags-${item.itemId}"]`);
+    const itemSelectedTags = new Map();
+    
+    tagOptions.forEach(tagElement => {
+      tagElement.addEventListener('click', () => {
+        const tag = tagElement.getAttribute('data-tag');
+        if (!itemSelectedTags.has(tag)) {
+          itemSelectedTags.set(tag, true);
+          
+          const selectedTag = document.createElement('span');
+          selectedTag.className = 'tag';
+          selectedTag.textContent = tag;
+          selectedTag.innerHTML += ' <span class="remove-tag">×</span>';
+          
+          selectedTag.querySelector('.remove-tag').addEventListener('click', () => {
+            selectedTagsContainer.removeChild(selectedTag);
+            itemSelectedTags.delete(tag);
+          });
+          
+          selectedTagsContainer.appendChild(selectedTag);
+        }
+      });
+    });
+    
+    itemElement.querySelector('.approve-btn').addEventListener('click', () => {
+      approveItem(item.itemId, itemElement, Array.from(itemSelectedTags.keys()));
+    });
+    
+    itemElement.querySelector('.discard-btn').addEventListener('click', () => {
+      discardItem(item.itemId, itemElement);
+    });
+  });
+}
+
+async function approveItem(itemId, itemElement, selectedTags) {
+  const whyItMatters = itemElement.querySelector(`#item-why-${itemId}`).value.trim();
+  
+  if (!whyItMatters) {
+    showToast('Please explain why this signal matters');
+    return;
+  }
+  
+  if (selectedTags.length === 0) {
+    showToast('Please select at least one tag');
+    return;
+  }
+  
+  try {
+    const item = pipelineItems.find(i => i.itemId === itemId);
+    
+    const signalData = {
+      title: item.rawTitle,
+      sourceContext: item.rawSource,
+      whyItMatters,
+      categoryTags: selectedTags,
+      dateCreated: new Date().toISOString()
+    };
+    
+    await window.api.approvePipelineItem(itemId, signalData);
+    
+    pipelineItemsList.removeChild(itemElement);
+    
+    pipelineItems = pipelineItems.filter(i => i.itemId !== itemId);
+    
+    const pipelineBadge = document.querySelector('.pipeline-badge');
+    if (pipelineBadge) {
+      if (pipelineItems.length > 0) {
+        pipelineBadge.textContent = `${pipelineItems.length} items`;
+      } else {
+        pipelineBadge.remove();
+      }
+    }
+    
+    await loadSignals();
+    
+    showToast('Item approved and added to signals');
+  } catch (error) {
+    console.error('Error approving pipeline item:', error);
+    showToast('Error approving item');
+  }
+}
+
+async function discardItem(itemId, itemElement) {
+  if (confirm('Are you sure you want to discard this item?')) {
+    try {
+      await window.api.deletePipelineItem(itemId);
+      
+      pipelineItemsList.removeChild(itemElement);
+      
+      pipelineItems = pipelineItems.filter(i => i.itemId !== itemId);
+      
+      const pipelineBadge = document.querySelector('.pipeline-badge');
+      if (pipelineBadge) {
+        if (pipelineItems.length > 0) {
+          pipelineBadge.textContent = `${pipelineItems.length} items`;
+        } else {
+          pipelineBadge.remove();
+        }
+      }
+      
+      showToast('Item discarded');
+    } catch (error) {
+      console.error('Error discarding pipeline item:', error);
+      showToast('Error discarding item');
+    }
+  }
+}
+
+async function initializePipeline() {
+  setupPipelineEventListeners();
+  await loadPipelineConfig();
+  await loadPipelineItems();
 }

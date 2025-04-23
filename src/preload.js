@@ -10,5 +10,17 @@ contextBridge.exposeInMainWorld('api', {
   getTags: () => ipcRenderer.invoke('get-tags'),
   
   filterSignalsByTag: (tag) => ipcRenderer.invoke('filter-signals-by-tag', tag),
-  searchSignals: (query) => ipcRenderer.invoke('search-signals', query)
+  searchSignals: (query) => ipcRenderer.invoke('search-signals', query),
+  
+  getPipelineConfig: () => ipcRenderer.invoke('get-pipeline-config'),
+  savePipelineConfig: (config) => ipcRenderer.invoke('save-pipeline-config', config),
+  fetchPipelineDataNow: () => ipcRenderer.invoke('fetch-pipeline-data-now'),
+  getPipelineItems: () => ipcRenderer.invoke('get-pipeline-items'),
+  getPipelineItemsBySource: (source) => ipcRenderer.invoke('get-pipeline-items-by-source', source),
+  approvePipelineItem: (itemId, signalData) => ipcRenderer.invoke('approve-pipeline-item', itemId, signalData),
+  deletePipelineItem: (itemId) => ipcRenderer.invoke('delete-pipeline-item', itemId)
+});
+
+ipcRenderer.on('pipeline-items-updated', () => {
+  document.dispatchEvent(new CustomEvent('pipeline-items-updated'));
 });

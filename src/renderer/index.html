@@ -12,6 +12,7 @@
       <h1>Weak Signal Tracker</h1>
       <div class="header-actions">
         <button id="add-signal-btn" class="primary-btn">Add Signal</button>
+        <button id="pipeline-settings-btn" class="secondary-btn">Data Pipelines</button>
       </div>
     </header>
 
@@ -89,6 +90,118 @@
               <button type="submit" id="save-btn" class="primary-btn">Save</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Settings Modal -->
+  <div id="pipeline-settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Data Pipeline Settings</h2>
+        <button id="close-pipeline-settings-modal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="pipeline-enabled-toggle">
+            <span class="toggle-slider"></span>
+            Enable Data Pipelines
+          </label>
+          <p class="setting-description">Automatically fetch potential signals from external sources.</p>
+        </div>
+        
+        <h3>Data Sources</h3>
+        
+        <div class="source-config">
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="hackernews-enabled-toggle">
+              <span class="toggle-slider"></span>
+              HackerNews
+            </label>
+          </div>
+          <div class="form-group source-settings">
+            <label for="hackernews-limit">Max items to fetch:</label>
+            <input type="number" id="hackernews-limit" min="1" max="100" value="20">
+          </div>
+        </div>
+        
+        <div class="source-config">
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="github-enabled-toggle">
+              <span class="toggle-slider"></span>
+              GitHub Trending
+            </label>
+          </div>
+          <div class="form-group source-settings">
+            <label for="github-limit">Max items to fetch:</label>
+            <input type="number" id="github-limit" min="1" max="100" value="20">
+          </div>
+        </div>
+        
+        <div class="source-config">
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="apple-enabled-toggle">
+              <span class="toggle-slider"></span>
+              Apple Developer News
+            </label>
+          </div>
+          <div class="form-group source-settings">
+            <label for="apple-limit">Max items to fetch:</label>
+            <input type="number" id="apple-limit" min="1" max="100" value="20">
+          </div>
+        </div>
+        
+        <h3>Update Frequency</h3>
+        
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="daily-fetch-toggle">
+            <span class="toggle-slider"></span>
+            Daily
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="weekly-fetch-toggle">
+            <span class="toggle-slider"></span>
+            Weekly
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" id="fetch-now-btn" class="secondary-btn">Fetch Data Now</button>
+          <button type="button" id="cancel-pipeline-settings-btn" class="secondary-btn">Cancel</button>
+          <button type="button" id="save-pipeline-settings-btn" class="primary-btn">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Items Modal -->
+  <div id="pipeline-items-modal" class="modal">
+    <div class="modal-content pipeline-items-modal-content">
+      <div class="modal-header">
+        <h2>Pipeline Items</h2>
+        <button id="close-pipeline-items-modal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="pipeline-items-tabs">
+          <button class="tab-btn active" data-source="all">All</button>
+          <button class="tab-btn" data-source="hackernews">HackerNews</button>
+          <button class="tab-btn" data-source="github">GitHub</button>
+          <button class="tab-btn" data-source="apple">Apple</button>
+        </div>
+        <div id="pipeline-items-list" class="pipeline-items-list">
+          <!-- Pipeline items will be dynamically inserted here -->
+          <div class="empty-state">
+            <p>No pipeline items available. Configure data sources and click "Fetch Data Now".</p>
+          </div>
         </div>
       </div>
     </div>
